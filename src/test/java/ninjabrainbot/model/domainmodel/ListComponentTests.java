@@ -2,9 +2,9 @@ package ninjabrainbot.model.domainmodel;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import ninjabrainbot.event.IReadOnlyList;
+import ninjabrainbot.model.datastate.common.DetachedDomainModel;
 import ninjabrainbot.util.TestUtils;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +12,7 @@ public class ListComponentTests {
 
 	@Test
 	public void getAsImmutable() {
-		ListComponent<Integer> listComponent = new ListComponent<>(null, 10);
+		ListComponent<Integer> listComponent = new ListComponent<>("list", new DetachedDomainModel(), 10);
 		IReadOnlyList<Integer> snapshot0 = listComponent.getAsImmutable();
 
 		listComponent.add(2);

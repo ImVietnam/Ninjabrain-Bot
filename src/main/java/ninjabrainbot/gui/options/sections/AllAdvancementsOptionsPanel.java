@@ -2,6 +2,7 @@ package ninjabrainbot.gui.options.sections;
 
 import javax.swing.border.EmptyBorder;
 
+import ninjabrainbot.gui.buttons.WikiButton;
 import ninjabrainbot.gui.components.labels.ThemedLabel;
 import ninjabrainbot.gui.components.layout.StackPanel;
 import ninjabrainbot.gui.components.preferences.CheckboxPanel;
@@ -17,6 +18,7 @@ import ninjabrainbot.util.I18n;
 public class AllAdvancementsOptionsPanel extends StackPanel {
 
 	private final NinjabrainBotPreferences preferences;
+	private final CheckboxPanel oneDotTwentyPlusAA;
 	private final RadioButtonPanel switchTypeRadioButtonPanel;
 	private final HotkeyPanel toggleHotkeyPanel;
 
@@ -36,15 +38,21 @@ public class AllAdvancementsOptionsPanel extends StackPanel {
 			}
 		});
 		add(new CheckboxPanel(styleManager, I18n.get("settings.enable_all_advancements_mode"), preferences.allAdvancements));
+
+		add(oneDotTwentyPlusAA = new CheckboxPanel(styleManager, I18n.get("settings.enable_120plus_all_advancements_mode"), preferences.oneDotTwentyPlusAA)
+				.withWikiButton(new WikiButton(styleManager, "https://github.com/Ninjabrain1/Ninjabrain-Bot/wiki/All-advancements-mode-with-Minecraft-version-1.20-and-later")));
+
 		add(switchTypeRadioButtonPanel = new RadioButtonPanel(styleManager, I18n.get("settings.all_advancements.switch_type"), preferences.allAdvancementsToggleType, true));
 		add(toggleHotkeyPanel = new HotkeyPanel(styleManager, I18n.get("settings.all_advancements.toggle_aa_mode_hotkey"), preferences.hotkeyToggleAllAdvancementsMode));
 
 		updateComponentsEnabled();
 		preferences.allAdvancements.whenModified().subscribeEDT(this::updateComponentsEnabled);
+		preferences.oneDotTwentyPlusAA.whenModified().subscribeEDT(this::updateComponentsEnabled);
 		preferences.allAdvancementsToggleType.whenModified().subscribeEDT(this::updateComponentsEnabled);
 	}
 
 	private void updateComponentsEnabled() {
+		oneDotTwentyPlusAA.setEnabled(preferences.allAdvancements.get());
 		switchTypeRadioButtonPanel.setEnabled(preferences.allAdvancements.get());
 		toggleHotkeyPanel.setEnabled(preferences.allAdvancements.get() && preferences.allAdvancementsToggleType.get() == AllAdvancementsToggleType.Hotkey);
 	}

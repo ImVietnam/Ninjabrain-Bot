@@ -18,10 +18,10 @@ import ninjabrainbot.event.IDisposable;
 import ninjabrainbot.gui.buttons.FlatButton;
 import ninjabrainbot.gui.buttons.NotificationsButton;
 import ninjabrainbot.gui.buttons.TitleBarButton;
-import ninjabrainbot.gui.components.RefreshWindowOnMonitorChangeListener;
 import ninjabrainbot.gui.components.labels.ThemedIcon;
 import ninjabrainbot.gui.components.labels.ThemedLabel;
-import ninjabrainbot.gui.mainwindow.BoatIcon;
+import ninjabrainbot.gui.mainwindow.boateye.BoatIcon;
+import ninjabrainbot.gui.mainwindow.boateye.Mod360Icon;
 import ninjabrainbot.gui.mainwindow.eyethrows.EnderEyePanel;
 import ninjabrainbot.gui.mainwindow.information.InformationListPanel;
 import ninjabrainbot.gui.mainwindow.main.MainButtonPanel;
@@ -102,7 +102,6 @@ public class NinjabrainBotFrame extends ThemedFrame implements IDisposable {
 		disposeHandler.add(mainTextArea.whenModified().subscribeEDT(__ -> updateSize(styleManager)));
 		disposeHandler.add(informationTextPanel.whenModified().subscribeEDT(__ -> updateSize(styleManager)));
 		disposeHandler.add(enderEyePanel.whenModified().subscribeEDT(__ -> updateSize(styleManager)));
-		// Lock
 		disposeHandler.add(dataState.locked().subscribeEDT(b -> lockIcon.setVisible(b)));
 	}
 
@@ -123,6 +122,8 @@ public class NinjabrainBotFrame extends ThemedFrame implements IDisposable {
 		titlebarPanel.addButton(settingsButton);
 		NotificationsButton notificationsButton = new NotificationsButton(styleManager, this, preferences, updateChecker);
 		titlebarPanel.addButton(notificationsButton);
+		titlebarPanel.addButton(new BoatIcon(styleManager, dataState.boatDataState().boatState(), preferences, disposeHandler));
+		titlebarPanel.addButton(new Mod360Icon(styleManager, dataState.boatDataState(), preferences, disposeHandler));
 	}
 
 	@Override

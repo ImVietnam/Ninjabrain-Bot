@@ -2,7 +2,7 @@ package ninjabrainbot.model.datastate;
 
 import ninjabrainbot.event.DisposeHandler;
 import ninjabrainbot.event.IDisposable;
-import ninjabrainbot.event.IObservable;
+import ninjabrainbot.io.preferences.enums.DefaultBoatType;
 import ninjabrainbot.model.datastate.alladvancements.AllAdvancementsDataState;
 import ninjabrainbot.model.datastate.alladvancements.IAllAdvancementsDataState;
 import ninjabrainbot.model.datastate.blind.BlindResult;
@@ -43,14 +43,18 @@ public class DataState implements IDataState, IDisposable {
 	private final DisposeHandler disposeHandler = new DisposeHandler();
 
 	public DataState(IDomainModel domainModel, IEnvironmentState environmentState) {
+		this(domainModel, environmentState, DefaultBoatType.GRAY);
+	}
+
+	public DataState(IDomainModel domainModel, IEnvironmentState environmentState, DefaultBoatType defaultBoatType) {
 		divineContext = disposeHandler.add(new DivineContext(domainModel));
-		throwSet = new ListComponent<>(domainModel, 10);
-		playerPosition = new DataComponent<>(domainModel);
-		locked = new DataComponent<>(domainModel, false);
+		throwSet = new ListComponent<>("throw_set", domainModel, 10);
+		playerPosition = new DataComponent<>("player_position", domainModel);
+		locked = new DataComponent<>("is_locked", domainModel, false);
 
 		calculatorManager = disposeHandler.add(new CalculatorManager(domainModel, environmentState, throwSet, playerPosition, divineContext));
-		allAdvancementsDataState = disposeHandler.add(new AllAdvancementsDataState(calculatorManager.topPrediction(), domainModel, environmentState));
-		boatDataState = new BoatDataState(domainModel);
+		allAdvancementsDataState = disposeHandler.add(new AllAdvancementsDataState(calculatorManager.topPrediction(), playerPosition, domainModel, environmentState));
+		boatDataState = new BoatDataState(domainModel, defaultBoatType);
 
 		resultTypeProvider = disposeHandler.add(new ResultTypeProvider(this, domainModel));
 	}

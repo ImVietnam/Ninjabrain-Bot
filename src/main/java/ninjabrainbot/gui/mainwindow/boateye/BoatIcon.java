@@ -1,4 +1,4 @@
-package ninjabrainbot.gui.mainwindow;
+package ninjabrainbot.gui.mainwindow.boateye;
 
 import java.util.HashMap;
 import java.util.Objects;
@@ -6,23 +6,22 @@ import java.util.Objects;
 import javax.swing.ImageIcon;
 
 import ninjabrainbot.Main;
-import ninjabrainbot.model.datastate.highprecision.BoatState;
 import ninjabrainbot.event.DisposeHandler;
 import ninjabrainbot.event.IObservable;
 import ninjabrainbot.gui.components.labels.ThemedLabel;
 import ninjabrainbot.gui.style.StyleManager;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
+import ninjabrainbot.model.datastate.highprecision.BoatState;
 
 public class BoatIcon extends ThemedLabel {
 
 	public BoatIcon(StyleManager styleManager, IObservable<BoatState> boatState, NinjabrainBotPreferences preferences, DisposeHandler sh) {
 		super(styleManager);
 		setIcon(getBoatIcon(boatState.get()));
-//		setVisible(preferences.useTallRes.get() && preferences.usePreciseAngle.get());
-//
-//		sh.add(boatState.subscribeEDT(b -> setIcon(getBoatIcon(b))));
-//		sh.add(preferences.useTallRes.whenModified().subscribeEDT(b -> setVisible(b && preferences.usePreciseAngle.get())));
-//		sh.add(preferences.usePreciseAngle.whenModified().subscribeEDT(this::setVisible));
+		setVisible(preferences.usePreciseAngle.get());
+
+		sh.add(boatState.subscribeEDT(b -> setIcon(getBoatIcon(b))));
+		sh.add(preferences.usePreciseAngle.whenModified().subscribeEDT(this::setVisible));
 	}
 
 	private static final HashMap<String, ImageIcon> cachedIcons = new HashMap<>();

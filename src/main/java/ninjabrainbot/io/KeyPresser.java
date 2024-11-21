@@ -23,18 +23,20 @@ public class KeyPresser {
 		}
 	}
 
-	public void paste(String s) {
+	public void paste(String s) throws InterruptedException {
 		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		StringSelection selection = new StringSelection(s);
 		clipboard.setContents(selection, null);
 		robot.keyPress(CTRL_KEYCODE);
+		Thread.sleep(50);
 		robot.keyPress(KeyEvent.VK_V);
+		Thread.sleep(60);
 		robot.keyRelease(CTRL_KEYCODE);
+		Thread.sleep(50);
 		robot.keyRelease(KeyEvent.VK_V);
 	}
 
-	public void releaseF3C() {
-		robot.keyRelease(KeyEvent.VK_F3);
+	public void releaseC() {
 		robot.keyRelease(KeyEvent.VK_C);
 	}
 

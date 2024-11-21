@@ -1,5 +1,7 @@
 package ninjabrainbot.model.domainmodel;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.function.Consumer;
 
@@ -18,20 +20,22 @@ import ninjabrainbot.util.Assert;
  * for the undo action, and the ListComponent will not be write locked. However, in most cases where saving of
  * the data for undo is not needed, an {@link ObservableList} is more suiting.
  */
-public class ListComponent<T> implements IListComponent<T> {
+public class ListComponent<T extends Serializable> implements IListComponent<T> {
 
 	private final IDomainModel domainModel;
 	private final ObservableList<T> observableList;
 	private final ISubscribable<IReadOnlyList<T>> externalEvent;
 	private final int maxCapacity;
+	private final String uniqueId;
 
-	public ListComponent(IDomainModel domainModel, int maxCapacity) {
+	public ListComponent(String uniqueId, IDomainModel domainModel, int maxCapacity) {
+		Assert.isNotNull(domainModel, "Domain model cannot be null");
 		this.domainModel = domainModel;
+		this.uniqueId = uniqueId;
 		this.maxCapacity = maxCapacity;
 		observableList = new ObservableList<>();
-		externalEvent = domainModel != null ? domainModel.createExternalEventFor(observableList) : observableList;
-		if (domainModel != null)
-			domainModel.registerDataComponent(this);
+		externalEvent = domainModel.createExternalEventFor(observableList);
+		domainModel.registerFundamentalComponent(this);
 	}
 
 	@Override
@@ -124,15 +128,31 @@ public class ListComponent<T> implements IListComponent<T> {
 
 	@Override
 	public Subscription subscribeInternal(Consumer<IReadOnlyList<T>> subscriber) {
-		if (domainModel != null)
-			Assert.isFalse(domainModel.isFullyInitialized(), "Attempted to subscribe to internal events after domain model initialization has completed. External subscribers should use IListComponent.subscribe().");
+		Assert.isTrue(domainModel.isInternalSubscriptionRegistrationAllowed(), "Attempted to subscribe to internal events after domain model initialization has completed. External subscribers should use IListComponent.subscribe().");
 		return observableList.subscribe(subscriber);
 	}
 
 	@Override
 	public Subscription subscribe(Consumer<IReadOnlyList<T>> subscriber) {
-		if (domainModel != null)
-			Assert.isTrue(domainModel.isFullyInitialized(), "Attempted to subscribe to external events before domain model initialization has completed. Internal subscribers should use IListComponent.subscribeInternal().");
+		Assert.isTrue(domainModel.isExternalSubscriptionRegistrationAllowed(), "Attempted to subscribe to external events before domain model initialization has completed. Internal subscribers should use IListComponent.subscribeInternal().");
 		return externalEvent.subscribe(subscriber);
+	}
+
+	@Override
+	public String uniqueId() {
+		return uniqueId;
+	}
+
+	@Override
+	public ArrayList<T> getAsSerializable() {
+		ArrayList<T> arrayList = new ArrayList<>();
+		observableList.get().forEach(arrayList::add);
+		return arrayList;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public void setFromDeserializedObject(Serializable deserialized) {
+		set(new ArrayListImplementingReadOnlyList<>((Iterable<? extends T>) deserialized));
 	}
 }

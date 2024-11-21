@@ -1,11 +1,13 @@
 package ninjabrainbot.integrationtests;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
 import ninjabrainbot.model.datastate.common.DetailedPlayerPosition;
 import ninjabrainbot.model.datastate.common.IDetailedPlayerPosition;
+import ninjabrainbot.model.datastate.endereye.MCDimension;
 import ninjabrainbot.model.datastate.stronghold.Chunk;
 import ninjabrainbot.model.information.NextThrowDirectionInformationProvider;
 import ninjabrainbot.simulations.RandomPlayerPositionProvider;
@@ -63,12 +65,22 @@ public class NextDirectionProviderIntegrationTests {
 
 	private IDetailedPlayerPosition getPlayerPositionForNextThrow(IDetailedPlayerPosition playerPosition, Chunk stronghold, String message) {
 		String[] words = message.split(" ");
-		int leftDistance = Integer.parseInt(words[2]);
+		int leftDistance = getFirstInt(words);
 		double leftAngle = playerPosition.horizontalAngle() / 180.0 * Math.PI * 2 - 0.5 * Math.PI;
 		double x = playerPosition.xInOverworld() + Coords.getX(leftDistance, leftAngle);
 		double z = playerPosition.zInOverworld() + Coords.getZ(leftDistance, leftAngle);
 		double horizontalAngle = Coords.getPhi(stronghold.eightEightX() - x, stronghold.eightEightZ() - z) / Math.PI * 180.0;
-		return new DetailedPlayerPosition(x, 80, z, horizontalAngle, -31, false);
+		return new DetailedPlayerPosition(x, 80, z, horizontalAngle, -31, MCDimension.OVERWORLD);
+	}
+
+	private static int getFirstInt(String[] words) {
+		for (String word : words) {
+			try {
+				return Integer.parseInt(word);
+			} catch (NumberFormatException ignored) {
+			}
+		}
+		throw new NumberFormatException("Could not parse string array: " + Arrays.toString(words));
 	}
 
 }

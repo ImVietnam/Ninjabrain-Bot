@@ -3,8 +3,8 @@ package ninjabrainbot.model.information;
 import ninjabrainbot.event.IObservable;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
 import ninjabrainbot.model.datastate.IDataState;
-import ninjabrainbot.model.datastate.common.ResultType;
 import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
+import ninjabrainbot.model.datastate.common.ResultType;
 import ninjabrainbot.model.datastate.endereye.IEnderEyeThrow;
 import ninjabrainbot.model.datastate.stronghold.ChunkPrediction;
 import ninjabrainbot.model.environmentstate.IEnvironmentState;
@@ -20,6 +20,7 @@ public class MismeasureWarningProvider extends InformationMessageProvider {
 		super(preferences.informationMismeasureEnabled);
 		this.dataState = dataState;
 		this.standardDeviationSettings = environmentState.standardDeviationSettings();
+		raiseInformationMessageChanged();
 		disposeHandler.add(dataState.calculatorResult().subscribe(this::raiseInformationMessageChanged));
 		disposeHandler.add(dataState.resultType().subscribe(this::raiseInformationMessageChanged));
 		disposeHandler.add(standardDeviationSettings.subscribe(this::raiseInformationMessageChanged));
@@ -52,7 +53,7 @@ public class MismeasureWarningProvider extends InformationMessageProvider {
 	@Override
 	protected InformationMessage getInformationMessage() {
 		if (warningMessage == null)
-			warningMessage = new InformationMessage(InformationType.Warning, I18n.get("information.mismeasure"));
+			warningMessage = new InformationMessage(InformationMessageSeverity.WARNING, "MISMEASURE", I18n.get("information.mismeasure"));
 		return warningMessage;
 	}
 

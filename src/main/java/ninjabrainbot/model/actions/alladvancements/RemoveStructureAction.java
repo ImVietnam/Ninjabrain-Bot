@@ -1,34 +1,29 @@
 package ninjabrainbot.model.actions.alladvancements;
 
 import ninjabrainbot.model.actions.IAction;
+import ninjabrainbot.model.datastate.alladvancements.AllAdvancementsStructureType;
 import ninjabrainbot.model.datastate.alladvancements.IAllAdvancementsDataState;
-import ninjabrainbot.model.datastate.common.StructurePosition;
+import ninjabrainbot.model.datastate.common.StructureInformation;
 
 public class RemoveStructureAction implements IAction {
 
 	private final IAllAdvancementsDataState allAdvancementsDataState;
-	private final StructurePosition structurePosition;
+	private final StructureInformation structureInformation;
 
-	public RemoveStructureAction(IAllAdvancementsDataState allAdvancementsDataState, StructurePosition structurePosition) {
+	public RemoveStructureAction(IAllAdvancementsDataState allAdvancementsDataState, StructureInformation structureInformation) {
 		this.allAdvancementsDataState = allAdvancementsDataState;
-		this.structurePosition = structurePosition;
+		this.structureInformation = structureInformation;
 	}
 
 	@Override
 	public void execute() {
-		if (allAdvancementsDataState.spawnPosition().get() == structurePosition) {
-			allAdvancementsDataState.spawnPosition().reset();
-			return;
+		for (AllAdvancementsStructureType allAdvancementsStructureType : AllAdvancementsStructureType.values()) {
+			if (allAdvancementsDataState.getStructureInformation(allAdvancementsStructureType).get() == structureInformation) {
+				allAdvancementsDataState.getAllAdvancementsPosition(allAdvancementsStructureType).reset();
+				return;
+			}
 		}
-		if (allAdvancementsDataState.outpostPosition().get() == structurePosition) {
-			allAdvancementsDataState.outpostPosition().reset();
-			return;
-		}
-		if (allAdvancementsDataState.monumentPosition().get() == structurePosition) {
-			allAdvancementsDataState.monumentPosition().reset();
-			return;
-		}
-		throw new IllegalArgumentException(String.format("Cannot remove structure position %s because it not present in the data state.", structurePosition));
+		throw new IllegalArgumentException(String.format("Cannot remove structure position %s because it not present in the data state.", structureInformation));
 	}
 
 }

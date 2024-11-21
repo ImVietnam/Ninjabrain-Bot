@@ -1,5 +1,8 @@
 package ninjabrainbot.model.domainmodel;
 
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import ninjabrainbot.event.ISubscribable;
 
 /**
@@ -7,7 +10,7 @@ import ninjabrainbot.event.ISubscribable;
  */
 public interface IDomainModel extends IWriteLock {
 
-	void registerDataComponent(IDataComponent<?> dataComponent);
+	void registerFundamentalComponent(IFundamentalComponent<?, ?> dataComponent);
 
 	void registerInferredComponent(IInferredComponent<?> inferredComponent);
 
@@ -21,10 +24,18 @@ public interface IDomainModel extends IWriteLock {
 
 	void redoUnderWriteLock();
 
+	void deleteHistory();
+
 	boolean isReset();
 
-	boolean isFullyInitialized();
+	boolean isExternalSubscriptionRegistrationAllowed();
+
+	boolean isInternalSubscriptionRegistrationAllowed();
 
 	ISubscribable<IDomainModel> whenModified();
+
+	void serialize(ObjectOutput objectOutput) throws SerializationException;
+
+	void deserialize(ObjectInput objectInput) throws SerializationException;
 
 }

@@ -5,8 +5,8 @@ import java.util.Random;
 import ninjabrainbot.event.ObservableField;
 import ninjabrainbot.io.preferences.enums.McVersion;
 import ninjabrainbot.model.datastate.calculator.Calculator;
-import ninjabrainbot.model.environmentstate.CalculatorSettings;
 import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
+import ninjabrainbot.model.datastate.common.DetachedDomainModel;
 import ninjabrainbot.model.datastate.common.IOverworldPosition;
 import ninjabrainbot.model.datastate.divine.DivineContext;
 import ninjabrainbot.model.datastate.divine.IDivineContext;
@@ -15,6 +15,7 @@ import ninjabrainbot.model.datastate.stronghold.Chunk;
 import ninjabrainbot.model.datastate.stronghold.Ring;
 import ninjabrainbot.model.domainmodel.IListComponent;
 import ninjabrainbot.model.domainmodel.ListComponent;
+import ninjabrainbot.model.environmentstate.CalculatorSettings;
 import ninjabrainbot.model.environmentstate.StandardDeviationSettings;
 import ninjabrainbot.util.Logger;
 import ninjabrainbot.util.TestEnderEyeThrow;
@@ -32,7 +33,7 @@ public class OneEyeAccuracySimulation {
 	public static void main(String[] args) {
 		Logger.enabled = false;
 		calculator = new Calculator(new CalculatorSettings(true, McVersion.PRE_119), new StandardDeviationSettings(std, std, std, std));
-		divineContext = new DivineContext(null);
+		divineContext = new DivineContext(new DetachedDomainModel());
 
 		for (int r = 0; r < 3000; r += 100) {
 			int successes = 0;
@@ -59,7 +60,7 @@ public class OneEyeAccuracySimulation {
 	}
 
 	private static ICalculatorResult calculateOneEye(IEnderEyeThrow eyeThrow) {
-		IListComponent<IEnderEyeThrow> throwSet = new ListComponent<>(null, 10);
+		IListComponent<IEnderEyeThrow> throwSet = new ListComponent<>("throw_list", new DetachedDomainModel(), 10);
 		throwSet.add(eyeThrow);
 		return calculator.triangulate(throwSet, new ObservableField<>(eyeThrow.getPlayerPosition()), divineContext);
 	}

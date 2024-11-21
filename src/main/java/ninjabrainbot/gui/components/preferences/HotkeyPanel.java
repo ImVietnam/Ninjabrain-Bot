@@ -9,6 +9,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
+import com.sun.jna.Platform;
 import ninjabrainbot.gui.buttons.FlatButton;
 import ninjabrainbot.gui.components.labels.ThemedLabel;
 import ninjabrainbot.gui.components.panels.ThemedPanel;
@@ -69,15 +70,14 @@ public class HotkeyPanel extends ThemedPanel {
 		if (!editing) {
 			editing = true;
 			button.setText("...");
-			KeyboardListener.instance.setConsumer((code, modifier) -> {
-				if (code == -1) {
+			KeyboardListener.instance.setConsumer(nativeKeyEvent -> {
+				if (nativeKeyEvent == null) {
 					// Canceled, dont change anything
-				} else if (code == KeyEvent.VK_ESCAPE) {
+				} else if (nativeKeyEvent.getKeyCode() == NativeKeyEvent.VC_ESCAPE) {
 					preference.setCode(-1);
 					preference.setModifier(-1);
 				} else {
-					preference.setCode(code);
-					preference.setModifier(modifier);
+					preference.setHotkey(nativeKeyEvent);
 				}
 				String s = getKeyText();
 				SwingUtilities.invokeLater(() -> {
@@ -91,7 +91,7 @@ public class HotkeyPanel extends ThemedPanel {
 	private String getKeyText() {
 		if (preference.getCode() == -1)
 			return I18n.get("settings.not_in_use");
-		String k = KeyEvent.getKeyText(preference.getCode());
+		String k = Platform.isLinux() ? NativeKeyEvent.getKeyText(preference.getCode()) : KeyEvent.getKeyText(preference.getCode());
 		if (k.startsWith("Unknown")) {
 			k = k.substring(17);
 		}

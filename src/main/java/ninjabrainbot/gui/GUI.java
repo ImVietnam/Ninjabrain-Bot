@@ -10,11 +10,13 @@ import ninjabrainbot.gui.style.theme.Theme;
 import ninjabrainbot.io.AutoResetTimer;
 import ninjabrainbot.io.ClipboardReader;
 import ninjabrainbot.io.KeyboardListener;
+import ninjabrainbot.io.api.NinjabrainBotHttpServer;
 import ninjabrainbot.io.mcinstance.ActiveInstanceProviderFactory;
 import ninjabrainbot.io.mcinstance.IActiveInstanceProvider;
 import ninjabrainbot.io.overlay.NinjabrainBotOverlayImageWriter;
 import ninjabrainbot.io.overlay.OBSOverlay;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
+import ninjabrainbot.io.savestate.TempFileAccessor;
 import ninjabrainbot.io.updatechecker.GithubUpdateChecker;
 import ninjabrainbot.model.ModelState;
 import ninjabrainbot.model.actions.IActionExecutor;
@@ -23,6 +25,7 @@ import ninjabrainbot.model.datastate.calibrator.CalibratorFactory;
 import ninjabrainbot.model.datastate.endereye.CoordinateInputSource;
 import ninjabrainbot.model.datastate.endereye.EnderEyeThrowFactory;
 import ninjabrainbot.model.datastate.endereye.IEnderEyeThrowFactory;
+import ninjabrainbot.model.domainmodel.DomainModelImportExportService;
 import ninjabrainbot.model.domainmodel.IDomainModel;
 import ninjabrainbot.model.environmentstate.IEnvironmentState;
 import ninjabrainbot.model.information.CombinedCertaintyInformationProvider;
@@ -33,7 +36,7 @@ import ninjabrainbot.model.information.NextThrowDirectionInformationProvider;
 import ninjabrainbot.model.information.PortalLinkingWarningProvider;
 import ninjabrainbot.model.input.ActiveInstanceInputHandler;
 import ninjabrainbot.model.input.ButtonInputHandler;
-import ninjabrainbot.model.input.FossilInputHandler;
+import ninjabrainbot.model.input.F3ILocationInputHandler;
 import ninjabrainbot.model.input.HotkeyInputHandler;
 import ninjabrainbot.model.input.IButtonInputHandler;
 import ninjabrainbot.model.input.PlayerPositionInputHandler;
@@ -58,6 +61,7 @@ public class GUI {
 	private IActionExecutor actionExecutor;
 	private IEnvironmentState environmentState;
 	private IDataState dataState;
+	private DomainModelImportExportService domainModelImportExportService;
 
 	private CoordinateInputSource coordinateInputSource;
 	private IButtonInputHandler buttonInputHandler;
@@ -65,6 +69,7 @@ public class GUI {
 	private InformationMessageList informationMessageList;
 
 	private OBSOverlay obsOverlay;
+	private NinjabrainBotHttpServer ninjabrainBotHttpServer;
 
 	private final DisposeHandler disposeHandler = new DisposeHandler();
 
@@ -72,8 +77,8 @@ public class GUI {
 		this.preferences = preferences;
 		initInputMethods();
 		initModel();
-		initDataProcessors();
 		initInputHandlers();
+		initDataProcessors();
 		initUI();
 		postInit();
 	}
@@ -99,29 +104,27 @@ public class GUI {
 		actionExecutor = modelState.actionExecutor;
 		environmentState = modelState.environmentState;
 		dataState = modelState.dataState;
+		domainModelImportExportService = new DomainModelImportExportService(domainModel, new TempFileAccessor("NinjabrainBot-save-state.txt"), preferences);
+		domainModelImportExportService.triggerDeserialization();
+		domainModel.deleteHistory();
 		Profiler.stop();
 	}
 
 	private void initInputHandlers() {
 		Progress.setTask("Initializing input handlers", 0.08f);
 		coordinateInputSource = disposeHandler.add(new CoordinateInputSource(clipboardReader));
-		IEnderEyeThrowFactory enderEyeThrowFactory = new EnderEyeThrowFactory(preferences);
+		IEnderEyeThrowFactory enderEyeThrowFactory = new EnderEyeThrowFactory(preferences, dataState.boatDataState());
 		disposeHandler.add(new PlayerPositionInputHandler(coordinateInputSource, dataState, actionExecutor, preferences, enderEyeThrowFactory));
-		disposeHandler.add(new FossilInputHandler(coordinateInputSource, dataState, actionExecutor));
-		disposeHandler.add(new ActiveInstanceInputHandler(activeInstanceProvider, domainModel, dataState, environmentState, actionExecutor, preferences));
+		disposeHandler.add(new F3ILocationInputHandler(coordinateInputSource, dataState, actionExecutor, preferences));
+		disposeHandler.add(new ActiveInstanceInputHandler(activeInstanceProvider, domainModel, dataState, actionExecutor, preferences));
 		disposeHandler.add(new HotkeyInputHandler(preferences, domainModel, dataState, actionExecutor));
 		buttonInputHandler = new ButtonInputHandler(domainModel, dataState, actionExecutor);
 	}
 
 	private void initDataProcessors() {
 		Progress.setTask("Initializing information message generators", 0.09f);
-		Profiler.start("Init info message generators");
+		Profiler.start("Init info message list");
 		informationMessageList = new InformationMessageList();
-		informationMessageList.AddInformationMessageProvider(new McVersionWarningProvider(activeInstanceProvider, preferences));
-		informationMessageList.AddInformationMessageProvider(new MismeasureWarningProvider(dataState, environmentState, preferences));
-		informationMessageList.AddInformationMessageProvider(new PortalLinkingWarningProvider(dataState, preferences));
-		informationMessageList.AddInformationMessageProvider(new CombinedCertaintyInformationProvider(dataState, preferences));
-		informationMessageList.AddInformationMessageProvider(new NextThrowDirectionInformationProvider(dataState, environmentState, preferences));
 		Profiler.stop();
 	}
 
@@ -153,9 +156,18 @@ public class GUI {
 
 		new Thread(clipboardReader, "Clipboard reader").start();
 
+		Profiler.start("Init info message generators");
+		informationMessageList.AddInformationMessageProvider(new McVersionWarningProvider(activeInstanceProvider, preferences));
+		informationMessageList.AddInformationMessageProvider(new MismeasureWarningProvider(dataState, environmentState, preferences));
+		informationMessageList.AddInformationMessageProvider(new PortalLinkingWarningProvider(dataState, preferences));
+		informationMessageList.AddInformationMessageProvider(new CombinedCertaintyInformationProvider(dataState, preferences));
+		informationMessageList.AddInformationMessageProvider(new NextThrowDirectionInformationProvider(dataState, environmentState, preferences));
+		Profiler.stop();
+
 		autoResetTimer = new AutoResetTimer(dataState, domainModel, actionExecutor, preferences);
 
 		obsOverlay = new OBSOverlay(ninjabrainBotFrame, preferences, dataState, domainModel, new NinjabrainBotOverlayImageWriter(), 1000);
+		ninjabrainBotHttpServer = new NinjabrainBotHttpServer(dataState, domainModel, informationMessageList, preferences);
 
 		ninjabrainBotFrame.checkIfOffScreen();
 		ninjabrainBotFrame.setVisible(true);
@@ -178,10 +190,12 @@ public class GUI {
 			public void run() {
 				preferences.windowX.set(ninjabrainBotFrame.getX());
 				preferences.windowY.set(ninjabrainBotFrame.getY());
+				domainModelImportExportService.onShutdown();
 				disposeHandler.dispose();
 				obsOverlay.dispose();
 				autoResetTimer.dispose();
 				informationMessageList.dispose();
+				ninjabrainBotHttpServer.dispose();
 			}
 		};
 	}

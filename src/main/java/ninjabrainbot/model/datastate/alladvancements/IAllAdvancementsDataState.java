@@ -1,7 +1,8 @@
 package ninjabrainbot.model.datastate.alladvancements;
 
-import ninjabrainbot.event.IObservable;
-import ninjabrainbot.model.datastate.common.StructurePosition;
+import java.util.Iterator;
+
+import ninjabrainbot.model.datastate.common.StructureInformation;
 import ninjabrainbot.model.domainmodel.IDataComponent;
 import ninjabrainbot.model.domainmodel.IDomainModelComponent;
 
@@ -9,12 +10,17 @@ public interface IAllAdvancementsDataState {
 
 	IDomainModelComponent<Boolean> allAdvancementsModeEnabled();
 
-	IDomainModelComponent<StructurePosition> strongholdPosition();
+	IDataComponent<Boolean> hasEnteredEnd();
 
-	IDataComponent<StructurePosition> spawnPosition();
+	/**
+	 * Returns the IDataComponent corresponding to the given structure type. Throws IllegalArgumentException if
+	 * allAdvancementsStructureType equals Stronghold.
+	 */
+	IDataComponent<IAllAdvancementsPosition> getAllAdvancementsPosition(AllAdvancementsStructureType allAdvancementsStructureType);
 
-	IDataComponent<StructurePosition> outpostPosition();
-
-	IDataComponent<StructurePosition> monumentPosition();
+	/**
+	 * Returns the IDomainModelComponent corresponding to the given structure type.
+	 */
+	IDomainModelComponent<StructureInformation> getStructureInformation(AllAdvancementsStructureType allAdvancementsStructureType);
 
 }

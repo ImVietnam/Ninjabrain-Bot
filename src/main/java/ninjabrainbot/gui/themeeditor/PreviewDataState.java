@@ -6,6 +6,7 @@ import ninjabrainbot.model.datastate.IDataState;
 import ninjabrainbot.model.datastate.alladvancements.IAllAdvancementsDataState;
 import ninjabrainbot.model.datastate.blind.BlindResult;
 import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
+import ninjabrainbot.model.datastate.common.DetachedDomainModel;
 import ninjabrainbot.model.datastate.common.IPlayerPosition;
 import ninjabrainbot.model.datastate.common.ResultType;
 import ninjabrainbot.model.datastate.divine.DivineContext;
@@ -18,8 +19,10 @@ import ninjabrainbot.model.datastate.highprecision.IBoatDataState;
 import ninjabrainbot.model.datastate.stronghold.ChunkPrediction;
 import ninjabrainbot.model.domainmodel.DataComponent;
 import ninjabrainbot.model.domainmodel.IDataComponent;
+import ninjabrainbot.model.domainmodel.IDomainModel;
 import ninjabrainbot.model.domainmodel.IDomainModelComponent;
 import ninjabrainbot.model.domainmodel.IListComponent;
+import ninjabrainbot.model.domainmodel.InferredComponent;
 import ninjabrainbot.model.domainmodel.ListComponent;
 
 public class PreviewDataState implements IDataState {
@@ -33,10 +36,10 @@ public class PreviewDataState implements IDataState {
 	private final DataComponent<IPlayerPosition> playerPosition;
 
 	private final DataComponent<ResultType> resultType;
-	private final DataComponent<ICalculatorResult> calculatorResult;
-	private final DataComponent<ChunkPrediction> topPrediction;
-	private final DataComponent<BlindResult> blindResult;
-	private final DataComponent<DivineResult> divineResult;
+	private final InferredComponent<ICalculatorResult> calculatorResult;
+	private final InferredComponent<ChunkPrediction> topPrediction;
+	private final InferredComponent<BlindResult> blindResult;
+	private final InferredComponent<DivineResult> divineResult;
 
 	public PreviewDataState(ICalculatorResult result, List<IEnderEyeThrow> eyeThrows, Fossil f) {
 		this();
@@ -49,17 +52,18 @@ public class PreviewDataState implements IDataState {
 	}
 
 	public PreviewDataState() {
-		divineContext = new DivineContext(null);
-		throwSet = new ListComponent<>(null, 10);
-		playerPosition = new DataComponent<>(null);
-		locked = new DataComponent<>(null, false);
-		resultType = new DataComponent<>(null, ResultType.NONE);
-		calculatorResult = new DataComponent<>(null);
-		topPrediction = new DataComponent<>(null);
-		blindResult = new DataComponent<>(null);
-		divineResult = new DataComponent<>(null);
+		IDomainModel domainModel = new DetachedDomainModel();
+		divineContext = new DivineContext(domainModel);
+		throwSet = new ListComponent<>("", domainModel, 10);
+		playerPosition = new DataComponent<>("", domainModel, null);
+		locked = new DataComponent<>("", domainModel, false);
+		resultType = new DataComponent<>("", domainModel, ResultType.NONE);
+		calculatorResult = new InferredComponent<>(domainModel);
+		topPrediction = new InferredComponent<>(domainModel);
+		blindResult = new InferredComponent<>(domainModel);
+		divineResult = new InferredComponent<>(domainModel);
 
-		boatDataState = new BoatDataState(null);
+		boatDataState = new BoatDataState(domainModel);
 		allAdvancementsDataState = new PreviewAllAdvancementsDataState();
 	}
 

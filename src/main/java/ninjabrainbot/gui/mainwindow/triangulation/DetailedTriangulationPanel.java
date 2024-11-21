@@ -6,12 +6,12 @@ import java.util.List;
 
 import javax.swing.BoxLayout;
 
-import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
-import ninjabrainbot.model.datastate.stronghold.ChunkPrediction;
 import ninjabrainbot.event.IDisposable;
 import ninjabrainbot.gui.components.panels.ThemedPanel;
 import ninjabrainbot.gui.style.StyleManager;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
+import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
+import ninjabrainbot.model.datastate.stronghold.ChunkPrediction;
 
 public class DetailedTriangulationPanel extends ThemedPanel implements IDisposable {
 
@@ -50,7 +50,10 @@ public class DetailedTriangulationPanel extends ThemedPanel implements IDisposab
 		List<ChunkPrediction> predictions = result.getTopPredictions();
 		for (int i = 0; i < NUM_DETAILED_PANELS; i++) {
 			ChunkPanel p = panels.get(i);
-			p.setPrediction(predictions.get(i));
+			if (i < predictions.size())
+				p.setPrediction(predictions.get(i));
+			else
+				p.setPrediction(null);
 		}
 	}
 

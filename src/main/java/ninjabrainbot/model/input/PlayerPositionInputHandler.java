@@ -1,19 +1,23 @@
 package ninjabrainbot.model.input;
 
-import ninjabrainbot.model.datastate.IDataState;
-import ninjabrainbot.model.actions.endereye.AddEnderEyeThrowAction;
-import ninjabrainbot.model.actions.IAction;
-import ninjabrainbot.model.actions.IActionExecutor;
-import ninjabrainbot.model.actions.boat.SetBoatAngleAction;
-import ninjabrainbot.model.actions.common.SetPlayerPositionAction;
-import ninjabrainbot.model.actions.alladvancements.TryAddAllAdvancementsStructureAction;
-import ninjabrainbot.model.datastate.common.IDetailedPlayerPosition;
-import ninjabrainbot.model.datastate.common.IPlayerPosition;
-import ninjabrainbot.model.datastate.common.IPlayerPositionInputSource;
-import ninjabrainbot.model.datastate.endereye.IEnderEyeThrowFactory;
 import ninjabrainbot.event.DisposeHandler;
 import ninjabrainbot.event.IDisposable;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
+import ninjabrainbot.model.actions.IAction;
+import ninjabrainbot.model.actions.IActionExecutor;
+import ninjabrainbot.model.actions.alladvancements.TryAddAllAdvancementsStructureAction;
+import ninjabrainbot.model.actions.boat.ReduceBoatAngleMod360Action;
+import ninjabrainbot.model.actions.boat.SetBoatAngleAction;
+import ninjabrainbot.model.actions.common.SetPlayerPositionAction;
+import ninjabrainbot.model.actions.endereye.AddEnderEyeThrowAction;
+import ninjabrainbot.model.actions.endereye.ChangeLastAngleAction;
+import ninjabrainbot.model.actions.util.JointAction;
+import ninjabrainbot.model.datastate.IDataState;
+import ninjabrainbot.model.datastate.common.IDetailedPlayerPosition;
+import ninjabrainbot.model.datastate.common.ILimitedPlayerPosition;
+import ninjabrainbot.model.datastate.common.IPlayerPositionInputSource;
+import ninjabrainbot.model.datastate.endereye.IEnderEyeThrow;
+import ninjabrainbot.model.datastate.endereye.IEnderEyeThrowFactory;
 
 /**
  * Listens to a stream of player position inputs and decides if/how the inputs should affect the data state.
@@ -50,22 +54,29 @@ public class PlayerPositionInputHandler implements IDisposable {
 		if (dataState.locked().get())
 			return null;
 
-		if (!playerPosition.isInOverworld())
-			return null;
+		if (preferences.usePreciseAngle.get() && dataState.boatDataState().enteringBoat().get())
+			return new SetBoatAngleAction(dataState.boatDataState(), playerPosition.horizontalAngle(), preferences);
+
+		if (preferences.usePreciseAngle.get() && dataState.boatDataState().reducingModulo360().get())
+			return new ReduceBoatAngleMod360Action(dataState.boatDataState(), playerPosition.horizontalAngle(), preferences.sensitivityAutomatic.get());
 
 		if (dataState.allAdvancementsDataState().allAdvancementsModeEnabled().get())
-			return new TryAddAllAdvancementsStructureAction(dataState, playerPosition);
+			return new TryAddAllAdvancementsStructureAction(dataState, playerPosition, preferences);
 
-		if (dataState.boatDataState().enteringBoat().get())
-			return new SetBoatAngleAction(dataState.boatDataState(), playerPosition.horizontalAngle(), preferences);
+		if (!playerPosition.isInOverworld())
+			return null;
 
 		if (playerPosition.lookingBelowHorizon())
 			return null;
 
-		return new AddEnderEyeThrowAction(dataState, enderEyeThrowFactory.createEnderEyeThrowFromDetailedPlayerPosition(playerPosition));
+		IEnderEyeThrow enderEyeThrowToAdd = enderEyeThrowFactory.createEnderEyeThrowFromDetailedPlayerPosition(playerPosition);
+		if (shouldSkipAddingThrow(enderEyeThrowToAdd))
+			return null;
+
+		return new AddEnderEyeThrowAction(dataState, enderEyeThrowToAdd);
 	}
 
-	private void onNewLimitedPlayerPositionInputted(IPlayerPosition playerPosition) {
+	private void onNewLimitedPlayerPositionInputted(ILimitedPlayerPosition playerPosition) {
 		IAction setPlayerPositionAction = new SetPlayerPositionAction(dataState, playerPosition);
 		IAction actionForNewThrow = getActionForInputtedLimitedPlayerPosition(playerPosition);
 		if (actionForNewThrow == null) {
@@ -75,14 +86,33 @@ public class PlayerPositionInputHandler implements IDisposable {
 		actionExecutor.executeImmediately(setPlayerPositionAction, actionForNewThrow);
 	}
 
-	private IAction getActionForInputtedLimitedPlayerPosition(IPlayerPosition playerPosition) {
+	private IAction getActionForInputtedLimitedPlayerPosition(ILimitedPlayerPosition playerPosition) {
 		if (dataState.locked().get())
 			return null;
 
 		if (!playerPosition.isInOverworld())
 			return null;
 
-		return new AddEnderEyeThrowAction(dataState, enderEyeThrowFactory.createEnderEyeThrowFromLimitedPlayerPosition(playerPosition));
+		IEnderEyeThrow enderEyeThrowToAdd = enderEyeThrowFactory.createEnderEyeThrowFromLimitedPlayerPosition(playerPosition);
+		if (shouldSkipAddingThrow(enderEyeThrowToAdd))
+			return null;
+
+		IAction action = new AddEnderEyeThrowAction(dataState, enderEyeThrowToAdd);
+
+		if (playerPosition.correctionIncrements() != 0)
+			action = new JointAction(action, new ChangeLastAngleAction(dataState, preferences, playerPosition.correctionIncrements()));
+
+		return action;
+	}
+
+	private boolean shouldSkipAddingThrow(IEnderEyeThrow enderEyeThrow) {
+		if (dataState.getThrowList().size() == 0)
+			return false;
+
+		IEnderEyeThrow lastThrow = dataState.getThrowList().getLast();
+		return lastThrow.xInOverworld() == enderEyeThrow.xInOverworld() &&
+			   lastThrow.zInOverworld() == enderEyeThrow.zInOverworld() &&
+			   lastThrow.horizontalAngleWithoutCorrection() == enderEyeThrow.horizontalAngleWithoutCorrection();
 	}
 
 	@Override

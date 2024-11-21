@@ -1,28 +1,28 @@
 package ninjabrainbot.model.actions.endereye;
 
 import ninjabrainbot.event.IObservable;
-import ninjabrainbot.model.datastate.IDataState;
+import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
 import ninjabrainbot.model.actions.IAction;
+import ninjabrainbot.model.datastate.IDataState;
 import ninjabrainbot.model.datastate.endereye.IEnderEyeThrow;
 import ninjabrainbot.model.domainmodel.IListComponent;
-import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
 
 public class ChangeLastAngleAction implements IAction {
 
 	private final IListComponent<IEnderEyeThrow> throwList;
 	private final IObservable<Boolean> locked;
 	private final NinjabrainBotPreferences preferences;
-	private final boolean positive;
+	private final int correctionIncrements;
 
-	public ChangeLastAngleAction(IDataState dataState, NinjabrainBotPreferences preferences, boolean positive) {
-		this(dataState.getThrowList(), dataState.locked(), preferences, positive);
+	public ChangeLastAngleAction(IDataState dataState, NinjabrainBotPreferences preferences, int correctionIncrements) {
+		this(dataState.getThrowList(), dataState.locked(), preferences, correctionIncrements);
 	}
 
-	public ChangeLastAngleAction(IListComponent<IEnderEyeThrow> throwList, IObservable<Boolean> locked, NinjabrainBotPreferences preferences, boolean positive) {
+	public ChangeLastAngleAction(IListComponent<IEnderEyeThrow> throwList, IObservable<Boolean> locked, NinjabrainBotPreferences preferences, int correctionIncrements) {
 		this.throwList = throwList;
 		this.locked = locked;
 		this.preferences = preferences;
-		this.positive = positive;
+		this.correctionIncrements = correctionIncrements;
 	}
 
 	@Override
@@ -35,18 +35,26 @@ public class ChangeLastAngleAction implements IAction {
 
 		IEnderEyeThrow lastThrow = throwList.get(throwList.size() - 1);
 		double newCorrection = lastThrow.correction() + getAngleCorrectionAmountInDegrees(lastThrow.verticalAngle());
-		IEnderEyeThrow newThrow = lastThrow.withCorrection(newCorrection);
+		IEnderEyeThrow newThrow = lastThrow.withCorrection(newCorrection, lastThrow.correctionIncrements() + correctionIncrements);
 
 		throwList.replace(lastThrow, newThrow);
 	}
 
 	private double getAngleCorrectionAmountInDegrees(double beta) {
-		double change = 0.01;
-		if (preferences.useTallRes.get()) {
-			final double toRad = Math.PI / 180.0;
-			change = Math.atan(2 * Math.tan(15 * toRad) / preferences.resolutionHeight.get()) / Math.cos(beta * toRad) / toRad;
+		double change;
+		switch (preferences.angleAdjustmentType.get()) {
+			case TALL:
+				final double toRad = Math.PI / 180.0;
+				change = Math.atan(2 * Math.tan(15 * toRad) / preferences.resolutionHeight.get()) / Math.cos(beta * toRad) / toRad;
+				break;
+			case CUSTOM:
+				change = preferences.customAdjustment.get();
+				break;
+			default:
+				change = 0.01;
 		}
-		change *= positive ? 1 : -1;
+
+		change *= correctionIncrements;
 		return change;
 	}
 

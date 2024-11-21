@@ -1,10 +1,12 @@
 package ninjabrainbot;
 
 import java.util.Locale;
+import java.util.Optional;
 
 import ninjabrainbot.gui.GUI;
 import ninjabrainbot.gui.splash.Progress;
 import ninjabrainbot.gui.splash.Splash;
+import ninjabrainbot.io.ErrorHandler;
 import ninjabrainbot.io.KeyboardListener;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
 import ninjabrainbot.io.preferences.SavedPreferences;
@@ -15,11 +17,20 @@ import ninjabrainbot.util.Profiler;
 
 public class Main {
 
-	public static final String VERSION = "1.4.2";
+	public static final String VERSION = "1.5.2-PRE1";
 
 	public static void main(String[] args) {
-		System.setProperty("sun.java2d.opengl", "true");
-		Progress.init(new Splash());
+		ErrorHandler errorHandler = new ErrorHandler();
+		try {
+			start();
+		} catch (Exception e) {
+			errorHandler.handleStartupException(e);
+		}
+	}
+
+	private static void start() {
+		boolean isSplashScreenDisabled = Optional.ofNullable(System.getenv("XDG_SESSION_TYPE")).isPresent(); // Splash screen does not work for linux (wayland) so we turn it off
+		Progress.init(new Splash(isSplashScreenDisabled));
 		Progress.setTask("Loading language", 0.02f);
 		Profiler.start("Initialize language");
 		Logger.log("Language: " + I18n.get("lang"));
@@ -45,5 +56,4 @@ public class Main {
 		Profiler.stop();
 		Profiler.print();
 	}
-
 }

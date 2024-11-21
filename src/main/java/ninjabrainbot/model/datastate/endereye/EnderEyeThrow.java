@@ -7,13 +7,15 @@ public abstract class EnderEyeThrow implements IEnderEyeThrow {
 
 	protected final double x, z, horizontalAngleWithoutCorrection, verticalAngle;
 	protected final double correction;
+	protected final int correctionIncrements;
 
-	protected EnderEyeThrow(double x, double z, double horizontalAngle, double verticalAngle, double correction) {
+	protected EnderEyeThrow(double x, double z, double horizontalAngle, double verticalAngle, double correction, int correctionIncrements) {
 		this.x = x;
 		this.z = z;
 		this.horizontalAngleWithoutCorrection = clampToPlusMinus180Degrees(horizontalAngle);
 		this.verticalAngle = verticalAngle;
 		this.correction = correction;
+		this.correctionIncrements = correctionIncrements;
 	}
 
 	@Override
@@ -48,6 +50,11 @@ public abstract class EnderEyeThrow implements IEnderEyeThrow {
 	}
 
 	@Override
+	public int correctionIncrements() {
+		return correctionIncrements;
+	}
+
+	@Override
 	public double horizontalAngleWithoutCorrection() {
 		return horizontalAngleWithoutCorrection;
 	}
@@ -60,6 +67,15 @@ public abstract class EnderEyeThrow implements IEnderEyeThrow {
 			angleInDegrees -= 360.0;
 		}
 		return angleInDegrees;
+	}
+
+	protected static double getCorrectedHorizontalAngle(double alpha, double crosshairCorrection) {
+		alpha += crosshairCorrection;
+
+		// Caused by rounding in client-bound move entity packets
+		alpha -= 0.000824 * Math.sin((alpha + 45) * Math.PI / 180.0);
+
+		return alpha;
 	}
 
 }

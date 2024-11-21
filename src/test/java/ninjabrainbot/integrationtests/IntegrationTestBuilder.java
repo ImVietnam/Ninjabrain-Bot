@@ -1,35 +1,46 @@
 package ninjabrainbot.integrationtests;
 
+import java.util.Locale;
+
 import ninjabrainbot.event.DisposeHandler;
 import ninjabrainbot.gui.frames.NinjabrainBotFrame;
-import ninjabrainbot.gui.mainwindow.BoatIcon;
+import ninjabrainbot.gui.mainwindow.boateye.BoatIcon;
 import ninjabrainbot.gui.mainwindow.eyethrows.EnderEyePanel;
 import ninjabrainbot.gui.mainwindow.eyethrows.EnderEyePanelTestAdapter;
 import ninjabrainbot.gui.mainwindow.main.MainTextArea;
 import ninjabrainbot.gui.mainwindow.main.MainTextAreaTestAdapter;
 import ninjabrainbot.gui.style.StyleManager;
 import ninjabrainbot.io.mcinstance.IMinecraftWorldFile;
+import ninjabrainbot.io.mcinstance.McInstanceTestAdapter;
 import ninjabrainbot.io.mcinstance.MinecraftInstance;
 import ninjabrainbot.io.preferences.HotkeyPreference;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
 import ninjabrainbot.io.preferences.UnsavedPreferences;
 import ninjabrainbot.io.preferences.enums.AllAdvancementsToggleType;
+import ninjabrainbot.io.preferences.enums.AngleAdjustmentType;
 import ninjabrainbot.io.preferences.enums.MainViewType;
+import ninjabrainbot.io.preferences.enums.McVersion;
 import ninjabrainbot.io.preferences.enums.StrongholdDisplayType;
 import ninjabrainbot.model.ModelState;
 import ninjabrainbot.model.actions.IActionExecutor;
 import ninjabrainbot.model.datastate.IDataState;
+import ninjabrainbot.model.datastate.calibrator.CalibratorFactory;
 import ninjabrainbot.model.datastate.common.IDetailedPlayerPosition;
-import ninjabrainbot.model.datastate.divine.Fossil;
 import ninjabrainbot.model.datastate.endereye.CoordinateInputSource;
 import ninjabrainbot.model.datastate.endereye.EnderEyeThrowFactory;
+import ninjabrainbot.model.datastate.endereye.F3IData;
 import ninjabrainbot.model.datastate.endereye.IEnderEyeThrowFactory;
 import ninjabrainbot.model.domainmodel.IDomainModel;
 import ninjabrainbot.model.environmentstate.IEnvironmentState;
+import ninjabrainbot.model.information.CombinedCertaintyInformationProvider;
 import ninjabrainbot.model.information.InformationMessageList;
+import ninjabrainbot.model.information.McVersionWarningProvider;
+import ninjabrainbot.model.information.MismeasureWarningProvider;
+import ninjabrainbot.model.information.NextThrowDirectionInformationProvider;
+import ninjabrainbot.model.information.PortalLinkingWarningProvider;
 import ninjabrainbot.model.input.ActiveInstanceInputHandler;
 import ninjabrainbot.model.input.ButtonInputHandler;
-import ninjabrainbot.model.input.FossilInputHandler;
+import ninjabrainbot.model.input.F3ILocationInputHandler;
 import ninjabrainbot.model.input.HotkeyInputHandler;
 import ninjabrainbot.model.input.PlayerPositionInputHandler;
 import ninjabrainbot.util.Assert;
@@ -57,8 +68,8 @@ public class IntegrationTestBuilder {
 
 	private PlayerPositionInputHandler playerPositionInputHandler;
 	private PlayerPositionInputHandler fakePlayerPositionInputHandler;
-	private FossilInputHandler fossilInputHandler;
-	private FossilInputHandler fakeFossilInputHandler;
+	private F3ILocationInputHandler f3iLocationInputHandler;
+	private F3ILocationInputHandler fakeF3ILocationInputHandler;
 	private HotkeyInputHandler hotkeyInputHandler;
 	private ButtonInputHandler buttonInputHandler;
 	private ActiveInstanceInputHandler activeInstanceInputHandler;
@@ -66,6 +77,7 @@ public class IntegrationTestBuilder {
 	private StyleManager styleManager;
 
 	public IntegrationTestBuilder() {
+		Locale.setDefault(Locale.US);
 		preferences = new NinjabrainBotPreferences(new UnsavedPreferences());
 		ModelState modelState = new ModelState(preferences);
 		domainModel = modelState.domainModel;
@@ -79,6 +91,19 @@ public class IntegrationTestBuilder {
 		preferences.view.set(MainViewType.DETAILED);
 		preferences.strongholdDisplayType.set(StrongholdDisplayType.CHUNK);
 		preferences.useAltStd.set(true);
+		return this;
+	}
+
+	public IntegrationTestBuilder withAllInformationMessagesSettings() {
+		preferences.informationDirectionHelpEnabled.set(true);
+		preferences.informationMismeasureEnabled.set(true);
+		preferences.informationCombinedCertaintyEnabled.set(true);
+		preferences.informationMismeasureEnabled.set(true);
+		return this;
+	}
+
+	public IntegrationTestBuilder withMcVersionSetting(McVersion mcVersion) {
+		preferences.mcVersion.set(mcVersion);
 		return this;
 	}
 
@@ -98,9 +123,20 @@ public class IntegrationTestBuilder {
 
 	public IntegrationTestBuilder withBoatSettings() {
 		preferences.sigmaBoat.set(0.001f);
-		preferences.sensitivity.set(0.065292805);
+		preferences.sensitivityAutomatic.set(0.065292805);
 		preferences.resolutionHeight.set(16384);
-		preferences.useTallRes.set(true);
+		preferences.angleAdjustmentType.set(AngleAdjustmentType.TALL);
+		preferences.usePreciseAngle.set(true);
+		preferences.view.set(MainViewType.DETAILED);
+		preferences.strongholdDisplayType.set(StrongholdDisplayType.CHUNK);
+		return this;
+	}
+
+	public IntegrationTestBuilder withDoogileBoatSettings() {
+		preferences.sigmaBoat.set(0.0007f);
+		preferences.sensitivityAutomatic.set(0.00467673);
+		preferences.resolutionHeight.set(16384);
+		preferences.usePreciseAngle.set(true);
 		preferences.view.set(MainViewType.DETAILED);
 		preferences.strongholdDisplayType.set(StrongholdDisplayType.CHUNK);
 		return this;
@@ -110,7 +146,7 @@ public class IntegrationTestBuilder {
 		if (clipboardReader == null) clipboardReader = new MockedClipboardReader();
 		if (coordinateInputSource == null) coordinateInputSource = new CoordinateInputSource(clipboardReader);
 		if (playerPositionInputHandler == null) playerPositionInputHandler = createPlayerPositionInputHandler();
-		if (fossilInputHandler == null) fossilInputHandler = new FossilInputHandler(coordinateInputSource, dataState, actionExecutor);
+		if (f3iLocationInputHandler == null) f3iLocationInputHandler = new F3ILocationInputHandler(coordinateInputSource, dataState, actionExecutor, preferences);
 		clipboardReader.setClipboard(clipboardString);
 	}
 
@@ -138,9 +174,15 @@ public class IntegrationTestBuilder {
 	}
 
 	public void setActiveMinecraftWorld(IMinecraftWorldFile minecraftWorld) {
+		setActiveMinecraftWorld(minecraftWorld, McVersion.PRE_119);
+	}
+
+	public void setActiveMinecraftWorld(IMinecraftWorldFile minecraftWorld, McVersion mcVersion) {
 		if (activeInstanceProvider == null) activeInstanceProvider = new MockedInstanceProvider();
-		if (activeInstanceInputHandler == null) activeInstanceInputHandler = new ActiveInstanceInputHandler(activeInstanceProvider, domainModel, dataState, environmentState, actionExecutor, preferences);
+		if (activeInstanceInputHandler == null) activeInstanceInputHandler = new ActiveInstanceInputHandler(activeInstanceProvider, domainModel, dataState, actionExecutor, preferences);
+		McInstanceTestAdapter.setMinecraftInstanceVersion(minecraftWorld.minecraftInstance(), mcVersion);
 		activeInstanceProvider.activeMinecraftWorld().set(minecraftWorld);
+		activeInstanceProvider.activeMinecraftInstance().set(minecraftWorld.minecraftInstance());
 	}
 
 	public MainTextAreaTestAdapter createMainTextArea() {
@@ -163,6 +205,25 @@ public class IntegrationTestBuilder {
 		return frame;
 	}
 
+	public CalibratorFactory createCalibratorFactory() {
+		if (fakeCoordinateInputSource == null)
+			fakeCoordinateInputSource = new FakeCoordinateInputSource();
+		return new CalibratorFactory(environmentState.calculatorSettings(), fakeCoordinateInputSource, preferences);
+	}
+
+	public InformationMessageList createInformationMessageList(){
+		if (activeInstanceProvider == null)
+			activeInstanceProvider = new MockedInstanceProvider();
+
+		InformationMessageList informationMessageList = new InformationMessageList();
+		informationMessageList.AddInformationMessageProvider(new McVersionWarningProvider(activeInstanceProvider, preferences));
+		informationMessageList.AddInformationMessageProvider(new MismeasureWarningProvider(dataState, environmentState, preferences));
+		informationMessageList.AddInformationMessageProvider(new PortalLinkingWarningProvider(dataState, preferences));
+		informationMessageList.AddInformationMessageProvider(new CombinedCertaintyInformationProvider(dataState, preferences));
+		informationMessageList.AddInformationMessageProvider(new NextThrowDirectionInformationProvider(dataState, environmentState, preferences));
+		return informationMessageList;
+	}
+
 	public BoatIcon createBoatIcon() {
 		if (styleManager == null) styleManager = TestUtils.createStyleManager();
 		return new BoatIcon(styleManager, dataState.boatDataState().boatState(), preferences, new DisposeHandler());
@@ -183,12 +244,12 @@ public class IntegrationTestBuilder {
 		fakeCoordinateInputSource.whenNewDetailedPlayerPositionInputted.notifySubscribers(detailedPlayerPosition);
 	}
 
-	public void inputFossil(Fossil fossil) {
+	public void inputF3I(F3IData f3IData) {
 		if (fakeCoordinateInputSource == null)
 			fakeCoordinateInputSource = new FakeCoordinateInputSource();
-		if (fakeFossilInputHandler == null)
-			fakeFossilInputHandler = new FossilInputHandler(fakeCoordinateInputSource, dataState, actionExecutor);
-		fakeCoordinateInputSource.whenNewFossilInputted.notifySubscribers(fossil);
+		if (fakeF3ILocationInputHandler == null)
+			fakeF3ILocationInputHandler = new F3ILocationInputHandler(fakeCoordinateInputSource, dataState, actionExecutor, preferences);
+		fakeCoordinateInputSource.whenNewF3IInputted.notifySubscribers(f3IData);
 	}
 
 	public void resetCalculator() {
@@ -210,14 +271,14 @@ public class IntegrationTestBuilder {
 	private PlayerPositionInputHandler createPlayerPositionInputHandler() {
 		if (coordinateInputSource == null)
 			coordinateInputSource = new CoordinateInputSource(clipboardReader);
-		IEnderEyeThrowFactory enderEyeThrowFactory = new EnderEyeThrowFactory(preferences);
+		IEnderEyeThrowFactory enderEyeThrowFactory = new EnderEyeThrowFactory(preferences, dataState.boatDataState());
 		return new PlayerPositionInputHandler(coordinateInputSource, dataState, actionExecutor, preferences, enderEyeThrowFactory);
 	}
 
 	private PlayerPositionInputHandler createFakePlayerPositionInputHandler() {
 		if (fakeCoordinateInputSource == null)
 			fakeCoordinateInputSource = new FakeCoordinateInputSource();
-		IEnderEyeThrowFactory enderEyeThrowFactory = new EnderEyeThrowFactory(preferences);
+		IEnderEyeThrowFactory enderEyeThrowFactory = new EnderEyeThrowFactory(preferences, dataState.boatDataState());
 		return new PlayerPositionInputHandler(fakeCoordinateInputSource, dataState, actionExecutor, preferences, enderEyeThrowFactory);
 	}
 

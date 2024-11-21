@@ -2,12 +2,12 @@ package ninjabrainbot.model.information;
 
 import java.util.List;
 
-import ninjabrainbot.model.datastate.IDataState;
-import ninjabrainbot.model.datastate.common.ResultType;
-import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
-import ninjabrainbot.model.datastate.stronghold.Chunk;
 import ninjabrainbot.event.IObservable;
 import ninjabrainbot.io.preferences.NinjabrainBotPreferences;
+import ninjabrainbot.model.datastate.IDataState;
+import ninjabrainbot.model.datastate.calculator.ICalculatorResult;
+import ninjabrainbot.model.datastate.common.ResultType;
+import ninjabrainbot.model.datastate.stronghold.Chunk;
 import ninjabrainbot.util.I18n;
 
 public class CombinedCertaintyInformationProvider extends InformationMessageProvider {
@@ -18,6 +18,7 @@ public class CombinedCertaintyInformationProvider extends InformationMessageProv
 	public CombinedCertaintyInformationProvider(IDataState dataState, NinjabrainBotPreferences preferences) {
 		super(preferences.informationCombinedCertaintyEnabled);
 		resultType = dataState.resultType();
+		updateInformationMessage(dataState.calculatorResult().get());
 		disposeHandler.add(dataState.calculatorResult().subscribe(this::updateInformationMessage));
 		disposeHandler.add(resultType.subscribe(this::raiseInformationMessageChanged));
 	}
@@ -53,7 +54,7 @@ public class CombinedCertaintyInformationProvider extends InformationMessageProv
 		double combinedProbability = chunk0.weight + chunk1.weight;
 		int netherX = (chunk0.netherX() + chunk1.netherX()) / 2;
 		int netherZ = (chunk0.netherZ() + chunk1.netherZ()) / 2;
-		return new InformationMessage(InformationType.Info, I18n.get("information.top_two_chunks_are_neighboring", netherX, netherZ, combinedProbability * 100));
+		return new InformationMessage(InformationMessageSeverity.INFO, "COMBINED_CERTAINTY", I18n.get("information.top_two_chunks_are_neighboring", netherX, netherZ, combinedProbability * 100));
 	}
 
 }

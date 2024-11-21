@@ -46,6 +46,7 @@ import ninjabrainbot.model.datastate.IDataState;
 import ninjabrainbot.model.datastate.common.DetailedPlayerPosition;
 import ninjabrainbot.model.datastate.divine.Fossil;
 import ninjabrainbot.model.datastate.endereye.IEnderEyeThrow;
+import ninjabrainbot.model.datastate.endereye.MCDimension;
 import ninjabrainbot.model.datastate.endereye.NormalEnderEyeThrow;
 import ninjabrainbot.model.information.InformationMessageList;
 import ninjabrainbot.util.Assert;
@@ -60,14 +61,12 @@ public class ThemeEditorDialog extends ThemedDialog {
 	private FramePreviewPanel ninBotPreviewDetailed;
 
 	private final StyleManager previewStyleManager;
-	private final NinjabrainBotPreferences preferences;
 	private final CustomTheme customTheme; // theme that is saved
 	private final CustomTheme previewTheme; // used for previewing
 
 	public ThemeEditorDialog(StyleManager styleManager, NinjabrainBotPreferences preferences, JFrame owner, CustomTheme customTheme) {
 		super(styleManager, preferences, owner, I18n.get("settings.themeeditor.themeeditor"));
 		Assert.isTrue(SwingUtilities.isEventDispatchThread());
-		this.preferences = preferences;
 		this.customTheme = customTheme;
 		previewTheme = new CustomTheme();
 		previewTheme.setFromTheme(customTheme, true);
@@ -171,8 +170,8 @@ public class ThemeEditorDialog extends ThemedDialog {
 		NinjabrainBotPreferences defaultPreferences = new NinjabrainBotPreferences(new UnsavedPreferences());
 		ArrayList<IEnderEyeThrow> eyeThrows = new ArrayList<>();
 
-		IEnderEyeThrow t1 = new NormalEnderEyeThrow(new DetailedPlayerPosition(659.70, 80, 1950.30, -253.82, -31.75, false), 0).withCorrection(0.01);
-		IEnderEyeThrow t2 = new NormalEnderEyeThrow(new DetailedPlayerPosition(-3.75, 80, 2002.63, -184.67, -31.75, false), 0).withCorrection(-0.01).withToggledAltStd();
+		IEnderEyeThrow t1 = new NormalEnderEyeThrow(new DetailedPlayerPosition(659.70, 80, 1950.30, -253.82, -31.75, MCDimension.OVERWORLD), 0).withCorrection(0.01, 1);
+		IEnderEyeThrow t2 = new NormalEnderEyeThrow(new DetailedPlayerPosition(-3.75, 80, 2002.63, -184.67, -31.75, MCDimension.OVERWORLD), 0).withCorrection(-0.01, -1).withToggledAltStd();
 		eyeThrows.add(t1);
 		eyeThrows.add(t2);
 		Fossil f = new Fossil(3);

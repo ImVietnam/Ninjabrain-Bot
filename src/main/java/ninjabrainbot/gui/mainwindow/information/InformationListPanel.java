@@ -6,13 +6,13 @@ import java.util.List;
 import javax.swing.BoxLayout;
 import javax.swing.SwingUtilities;
 
-import ninjabrainbot.model.information.InformationMessage;
-import ninjabrainbot.model.information.InformationMessageList;
 import ninjabrainbot.event.ArrayListImplementingReadOnlyList;
 import ninjabrainbot.event.IReadOnlyList;
 import ninjabrainbot.gui.components.ThemedComponent;
 import ninjabrainbot.gui.components.panels.ResizablePanel;
 import ninjabrainbot.gui.style.StyleManager;
+import ninjabrainbot.model.information.InformationMessage;
+import ninjabrainbot.model.information.InformationMessageList;
 
 public class InformationListPanel extends ResizablePanel implements ThemedComponent {
 
@@ -26,8 +26,6 @@ public class InformationListPanel extends ResizablePanel implements ThemedCompon
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setAlignmentX(0);
 		this.styleManager = styleManager;
-
-		SwingUtilities.invokeLater(() -> synchronizeInformationMessages(informationMessageList.get()));
 
 		informationMessageList.subscribeEDT(this::onInformationMessageListChanged);
 	}

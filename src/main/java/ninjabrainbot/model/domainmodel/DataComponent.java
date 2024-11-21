@@ -1,5 +1,6 @@
 package ninjabrainbot.model.domainmodel;
 
+import java.io.Serializable;
 import java.util.function.Consumer;
 
 import ninjabrainbot.event.ISubscribable;
@@ -15,24 +16,26 @@ import ninjabrainbot.util.Assert;
  * for the undo action, and the DataComponent will not be write locked. However, in most cases where saving of
  * the data for undo is not needed, an {@link ObservableField} is more suiting.
  */
-public class DataComponent<T> implements IDataComponent<T> {
+public class DataComponent<T extends Serializable> implements IDataComponent<T> {
 
 	private final IDomainModel domainModel;
 	private final ObservableField<T> observableField;
 	private final ISubscribable<T> externalEvent;
 	private final T defaultValue;
+	private final String uniqueId;
 
-	public DataComponent(IDomainModel domainModel) {
-		this(domainModel, null);
+	public DataComponent(String uniqueId, IDomainModel domainModel) {
+		this(uniqueId, domainModel, null);
 	}
 
-	public DataComponent(IDomainModel domainModel, T defaultValue) {
+	public DataComponent(String uniqueId, IDomainModel domainModel, T defaultValue) {
+		Assert.isNotNull(domainModel, "Domain model cannot be null");
 		this.domainModel = domainModel;
+		this.uniqueId = uniqueId;
 		observableField = new ObservableField<>(defaultValue);
-		externalEvent = domainModel != null ? domainModel.createExternalEventFor(observableField) : observableField;
+		externalEvent = domainModel.createExternalEventFor(observableField);
 		this.defaultValue = defaultValue;
-		if (domainModel != null)
-			domainModel.registerDataComponent(this);
+		domainModel.registerFundamentalComponent(this);
 	}
 
 	@Override
@@ -70,16 +73,30 @@ public class DataComponent<T> implements IDataComponent<T> {
 
 	@Override
 	public Subscription subscribeInternal(Consumer<T> subscriber) {
-		if (domainModel != null)
-			Assert.isFalse(domainModel.isFullyInitialized(), "Attempted to subscribe to internal events after domain model initialization has completed. External subscribers should use IDataComponent.subscribe().");
+		Assert.isTrue(domainModel.isInternalSubscriptionRegistrationAllowed(), "Attempted to subscribe to internal events after domain model initialization has completed. External subscribers should use IDataComponent.subscribe().");
 		return observableField.subscribe(subscriber);
 	}
 
 	@Override
 	public Subscription subscribe(Consumer<T> subscriber) {
-		if (domainModel != null)
-			Assert.isTrue(domainModel.isFullyInitialized(), "Attempted to subscribe to external events before domain model initialization has completed. Internal subscribers should use IDataComponent.subscribeInternal().");
+		Assert.isTrue(domainModel.isExternalSubscriptionRegistrationAllowed(), "Attempted to subscribe to external events before domain model initialization has completed. Internal subscribers should use IDataComponent.subscribeInternal().");
 		return externalEvent.subscribe(subscriber);
+	}
+
+	@Override
+	public String uniqueId() {
+		return uniqueId;
+	}
+
+	@Override
+	public T getAsSerializable() {
+		return get();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public void setFromDeserializedObject(Serializable deserialized) {
+		set((T) deserialized);
 	}
 
 }
